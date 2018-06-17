@@ -8,7 +8,6 @@ const { isPositiveNumber, isHex, asyncOnce, dedup, unsortedEquals, isNumber } = 
 const API = require('../api');
 const EthTxBuilder = require('./eth-tx-builder');
 const EthAccount = require('./eth-account');
-const EthSocket = require('./eth-socket');
 const EthWalletTx = require('./eth-wallet-tx');
 
 const objHasKeys = (obj, keys) => keys.every(k => has(k, obj));
@@ -135,7 +134,7 @@ class EthWallet {
     account.label = label || EthAccount.defaultLabel(this.accounts.length);
     account.markAsCorrect();
     this._accounts.push(account);
-    this._socket.subscribeToAccount(this, account, this.legacyAccount);
+    // this._socket.subscribeToAccount(this, account, this.legacyAccount);
     return this.sync();
   }
 
@@ -261,12 +260,12 @@ class EthWallet {
     this.updateTxs();
   }
 
-  connect (wsUrl) {
+  connect (socket) {
     if (this._socket) return;
-    this._socket = new EthSocket(wsUrl, WebSocket);
-    this._socket.on('open', () => this.setSocketHandlers());
-    this._socket.on('close', () => this.setSocketHandlers());
-  }
+    this._socket = socket;
+    this._socket.subscribeToBlocks(this);
+    this.activeAccounts.forEach(a => this._socket.subscribeToAccount(a));
+}
 
   setSocketHandlers () {
     this._socket.subscribeToBlocks(this);
